@@ -4,11 +4,22 @@
     groups: docker
     append: true
 
+- name: Pull the published application image
+  community.docker.docker_image_pull:
+    name: "{{ app_image }}:{{ app_tag }}"
+    pull: not_present
+    timeout: 120
+  register: app_image_pull
+  until: app_image_pull is succeeded
+  retries: 2
+  delay: 10
+
 - name: Run application container
   community.docker.docker_container:
     name: "{{ app_container_name }}"
     image: "{{ app_image }}:{{ app_tag }}"
     state: started
+    pull: never
     restart_policy: unless-stopped
     published_ports:
       - "127.0.0.1:{{ app_host_port }}:{{ app_internal_port }}"
