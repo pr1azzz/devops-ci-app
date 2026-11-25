@@ -59,28 +59,30 @@ jobs:
 
   deploy:
     needs: image
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, devops-vm]
     permissions:
       contents: read
     concurrency:
       group: deploy-devops-vm
       cancel-in-progress: false
+    timeout-minutes: 15
     env:
-      VM_HOST: 192.168.56.101 # Убедитесь, что это ваш IP!
+      VM_HOST: 192.168.56.101
     steps:
-      - name: Clone repository manually
-        run: |
-          rm -rf ./deploy_repo
-          git clone https://github.com/${{ github.repository }}.git ./deploy_repo
-          cd ./deploy_repo
-          git checkout ${{ github.sha }}
-
       - name: Deploy with Ansible
-        working-directory: ./deploy_repo/ansible
+        shell: bash
         run: |
-          ansible-playbook -i inventory/prod.ini site.yml -e "app_tag=${{ github.sha }}"
+          repo_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$repo_dir"' EXIT
+          git init --quiet "$repo_dir"
+          git -C "$repo_dir" fetch --quiet --no-tags --depth=1 \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+          git -C "$repo_dir" checkout --quiet --detach FETCH_HEAD
+          cd "$repo_dir/ansible"
+          ansible-playbook -i inventory/prod.ini site.yml -e "app_tag=$GITHUB_SHA"
 
       - name: Check through Nginx
         run: |
-          curl -sf http://${{ env.VM_HOST }}/health || exit 1
+          curl --fail --silent --show-error --max-time 15 --noproxy "$VM_HOST" \
+            "http://$VM_HOST/health"
