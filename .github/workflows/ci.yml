@@ -150,7 +150,7 @@ jobs:
       VM_HOST: 192.168.56.101 # Проверьте ваш IP!
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
 
