@@ -1,0 +1,6 @@
+app_image: "ghcr.io/pr1azzz/devops-ci-app"
+app_tag: "1f78ae394f8a1cd1c0f24add48f6a6425ee74214"
+app_container_name: "devops-ci-app"
+app_host_port: 5000
+app_internal_port: 5000
+
